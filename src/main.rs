@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
-use serde;
 use serde::Deserialize;
+use std::fs;
 
 pub struct PathIter{
     buf: PathBuf,
@@ -134,7 +134,6 @@ impl OptionConfig {
 }
 
 mod tests_option_config {
-    use crate::*;
     #[test]
     fn test_to_config() {
         let mut config = HashMap::new();
@@ -236,8 +235,70 @@ mod tests_option_config {
     }
 }
 
+fn prepend<T>(v: Vec<T>, s: T) -> Vec<T>
+where
+    T: Clone,
+{
+    let s = vec![s];
+    let mut tmp: Vec<_> = s.to_owned();
+    tmp.extend(v);
+    tmp
+}
+
+fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
+    let mut opt = OptionConfig::new();
+    let mut pathes = PathIter::new(cur_path.clone()).collect::<Vec<PathBuf>>();
+    cur_path.push("./git");
+    pathes = prepend(pathes, cur_path);
+    for path in pathes.iter_mut().rev() {
+        path.push(".gitconf");
+        path.push("current");
+    }
+    for path in pathes.iter_mut().rev() {
+        //println!("{:?}", path);
+        if let Ok(read_dir) = fs::read_dir(path) {
+            let entrys: Vec<std::io::Result<std::fs::DirEntry>> = read_dir.collect();
+            let mut files: Vec<PathBuf> = Vec::new();
+            for entry in entrys {
+                if let Ok(entry) = entry {
+                    files.push(entry.path())
+                }
+            }
+            if files.len() == 1 {
+                //println!("\t{:?}", files[0]);
+                let cur_conf: OptionConfig = match toml::from_str(
+                    match fs::read_to_string(files[0].clone().into_os_string()){
+                        Ok(s) => s,
+                        Err(_) => {
+                            /* Log warn message */
+                            continue
+                        }
+                    }.as_str()
+                ){
+                    Ok(cur_conf) => cur_conf,
+                    Err(_) => {
+                        /* Log warn message */
+                        continue
+                    }
+                };
+                //println!("\t\t{:?}", cur_conf);
+                opt.merge(&cur_conf);
+            }else if files.len() > 1 {
+                // Log msg that there can be only one current config
+            }
+        }
+    }
+    opt.to_config()
+}
+
+fn get_current_config() -> std::io::Result<Config>{
+    let buf = std::env::current_dir()?;
+    Ok(get_current_config_for_path(buf))
+}
+
 fn main() {
-    for path in PathIter::current().unwrap() {
+    println!("\n{:?}", get_current_config());
+    /*for path in PathIter::current().unwrap() {
         println!("{:?}", path);
     }
     for path in PathIter::current().unwrap().collect::<Vec<PathBuf>>().iter().rev() {
@@ -245,5 +306,5 @@ fn main() {
     }
     for path in PathIter::new(PathBuf::from("/etc/a/b/c/d")) {
         println!("{:?}", path);
-    }
+    }*/
 }
