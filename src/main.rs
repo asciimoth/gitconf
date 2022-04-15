@@ -3,6 +3,7 @@ use std::path::PathBuf;
 pub struct PathIter{
     buf: PathBuf,
     end: bool,
+    last: PathBuf,
 }
 
 impl PathIter {
@@ -10,6 +11,7 @@ impl PathIter {
         Self{
             buf: path,
             end: false,
+            last: PathBuf::from("/"),
         }
     }
     pub fn current() -> std::io::Result<Self> {
@@ -17,6 +19,7 @@ impl PathIter {
         Ok(Self{
             buf,
             end: false,
+            last: PathBuf::from("/"),
         })
     }
 }
@@ -24,10 +27,20 @@ impl PathIter {
 impl Iterator for PathIter {
     type Item = PathBuf;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.end { return None }
-        let ret = self.buf.clone();
-        self.end = !self.buf.pop();
-        Some(ret)
+        loop{
+            if self.end { return None }
+            let mut ret = self.buf.clone();
+            if let Some("/") = ret.to_str() {
+                ret = PathBuf::from("/etc")
+            }
+            self.end = !self.buf.pop();
+            if ret == self.last {
+                continue
+            } else {
+                self.last = ret.clone();
+            }
+            return Some(ret)
+        }
     }
 }
 
@@ -36,6 +49,9 @@ fn main() {
         println!("{:?}", path);
     }
     for path in PathIter::current().unwrap().collect::<Vec<PathBuf>>().iter().rev() {
+        println!("{:?}", path);
+    }
+    for path in PathIter::new(PathBuf::from("/etc/a/b/c/d")) {
         println!("{:?}", path);
     }
 }
