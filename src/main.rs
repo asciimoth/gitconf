@@ -90,7 +90,7 @@ impl OptionConfig {
         Config{
             strict: self.strict.unwrap_or(false),
             strict_git: self.strict_git.unwrap_or(true),
-            select_profile_on_first_use: self.select_profile_on_first_use.unwrap_or(true),
+            select_profile_on_first_use: self.select_profile_on_first_use.unwrap_or(false),
             show_current_profile: self.show_current_profile.unwrap_or(true),
             interactive: self.interactive.unwrap_or(false),
             config: self.config.clone().unwrap_or(default_config),
@@ -247,7 +247,8 @@ where
     tmp
 }
 
-fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
+fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<String>){
+    let mut config_path: Option<String> = None;
     let mut opt = OptionConfig::new();
     let mut pathes = PathIter::new(cur_path.clone()).collect::<Vec<PathBuf>>();
     cur_path.push("./git");
@@ -281,7 +282,7 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
                         continue
                     }
                 };
-                //println!("\t\t{:?}", cur_conf);
+                config_path = Some(files[0].clone().into_os_string().into_string().unwrap());
                 opt.merge(&cur_conf);
             }else if files.len() > 1 {
                 // Log msg that there can be only one current config
@@ -289,10 +290,10 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
             }
         }
     }
-    opt.to_config()
+    (opt.to_config(), config_path)
 }
 
-fn get_current_config() -> std::io::Result<Config>{
+fn get_current_config() -> std::io::Result<(Config, Option<String>)>{
     let buf = std::env::current_dir()?;
     Ok(get_current_config_for_path(buf))
 }
