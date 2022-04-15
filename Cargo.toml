@@ -5,7 +5,6 @@ description = "Overlay utility for more convenient and flexible configuration of
 readme = "README.md"
 repository = "https://github.com/DomesticMoth/gitconf"
 license = "CC0-1.0"
-license-file = "LICENSE"
 authors = ["DomesticMoth"]
 edition = "2021"
 keywords = ["git", "cli", "configuration"]
