@@ -1,0 +1,14 @@
+[package]
+name = "gitconf"
+version = "0.1.0"
+description = "Overlay utility for more convenient and flexible configuration of git"
+readme = "README.md"
+repository = "https://github.com/DomesticMoth/gitconf"
+license = "CC0-1.0"
+license-file = "LICENSE"
+authors = ["DomesticMoth"]
+edition = "2021"
+keywords = ["git", "cli", "configuration"]
+categories = ["command-line-utilities", "config", "development-tools"]
+
+[dependencies]
