@@ -7,7 +7,7 @@ repository = "https://github.com/DomesticMoth/gitconf"
 license = "CC0-1.0"
 authors = ["DomesticMoth"]
 edition = "2021"
-keywords = ["git", "cli", "configuration"]
+keywords = ["git", "cli", "configuration", "profiles", "identities"]
 categories = ["command-line-utilities", "config", "development-tools"]
 
 [dependencies]
