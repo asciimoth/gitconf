@@ -2,6 +2,8 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use serde::Deserialize;
 use std::fs;
+use log;
+use simplelog;
 
 pub struct PathIter{
     buf: PathBuf,
@@ -255,8 +257,7 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
         path.push("current");
     }
     for path in pathes.iter_mut().rev() {
-        //println!("{:?}", path);
-        if let Ok(read_dir) = fs::read_dir(path) {
+        if let Ok(read_dir) = fs::read_dir(path.clone()) {
             let entrys: Vec<std::io::Result<std::fs::DirEntry>> = read_dir.collect();
             let mut files: Vec<PathBuf> = Vec::new();
             for entry in entrys {
@@ -265,19 +266,18 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
                 }
             }
             if files.len() == 1 {
-                //println!("\t{:?}", files[0]);
                 let cur_conf: OptionConfig = match toml::from_str(
                     match fs::read_to_string(files[0].clone().into_os_string()){
                         Ok(s) => s,
                         Err(_) => {
-                            /* Log warn message */
+                            log::warn!("Cannot read config {:?}", files[0]);
                             continue
                         }
                     }.as_str()
                 ){
                     Ok(cur_conf) => cur_conf,
                     Err(_) => {
-                        /* Log warn message */
+                        log::warn!("Cannot parse config {:?}", files[0]);
                         continue
                     }
                 };
@@ -285,6 +285,7 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> Config{
                 opt.merge(&cur_conf);
             }else if files.len() > 1 {
                 // Log msg that there can be only one current config
+                log::warn!("There can be only one current config; More than one config found in {:?}", path);
             }
         }
     }
@@ -297,7 +298,13 @@ fn get_current_config() -> std::io::Result<Config>{
 }
 
 fn main() {
-    println!("\n{:?}", get_current_config());
+    simplelog::TermLogger::init(
+        simplelog::LevelFilter::Debug,
+        simplelog::ConfigBuilder::new().set_time_format_str("").build(),
+        simplelog::TerminalMode::Mixed,
+        simplelog::ColorChoice::Auto
+    ).unwrap();
+    log::info!("{:?}", get_current_config());
     /*for path in PathIter::current().unwrap() {
         println!("{:?}", path);
     }
