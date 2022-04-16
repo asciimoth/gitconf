@@ -251,7 +251,7 @@ fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<String>
     let mut config_path: Option<String> = None;
     let mut opt = OptionConfig::new();
     let mut pathes = PathIter::new(cur_path.clone()).collect::<Vec<PathBuf>>();
-    cur_path.push("./git");
+    cur_path.push(".git");
     pathes = prepend(pathes, cur_path);
     for path in pathes.iter_mut().rev() {
         path.push(".gitconf");
@@ -298,6 +298,50 @@ fn get_current_config() -> std::io::Result<(Config, Option<String>)>{
     Ok(get_current_config_for_path(buf))
 }
 
+fn get_profiles_for_path(mut cur_path: PathBuf) -> HashMap<String, PathBuf> {
+    let mut profiles: HashMap<String, PathBuf> = HashMap::new();
+    let mut pathes = PathIter::new(cur_path.clone()).collect::<Vec<PathBuf>>();
+    cur_path.push(".git");
+    pathes = prepend(pathes, cur_path);
+    for path in pathes.iter_mut().rev() {
+        path.push(".gitconf");
+        path.push("profiles");
+    }
+    for path in pathes.iter_mut().rev() {
+        if let Ok(read_dir) = fs::read_dir(path.clone()) {
+            let entrys: Vec<std::io::Result<std::fs::DirEntry>> = read_dir.collect();
+            for entry in entrys {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    let parsed: OptionConfig = match toml::from_str(
+                        match fs::read_to_string(path.clone().into_os_string()){
+                            Ok(s) => s,
+                            Err(_) => {
+                                log::warn!("Cannot read config {:?}", path);
+                                continue
+                            }
+                        }.as_str()
+                    ){
+                        Ok(cur_conf) => cur_conf,
+                        Err(_) => {
+                            log::warn!("Cannot parse config {:?}", path);
+                            continue
+                        }
+                    };
+                    //log::info!("Succsess parse config {:?}", path);
+                    profiles.insert(path.file_name().unwrap().to_str().unwrap().to_string(), path);
+                }
+            }
+        }
+    }
+    profiles
+}
+
+fn get_current_profiles() -> std::io::Result<HashMap<String, PathBuf>>{
+    let buf = std::env::current_dir()?;
+    Ok(get_profiles_for_path(buf))
+}
+
 fn main() {
     simplelog::TermLogger::init(
         simplelog::LevelFilter::Debug,
@@ -305,7 +349,8 @@ fn main() {
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto
     ).unwrap();
-    log::info!("{:?}", get_current_config());
+    log::info!("{:?}", get_current_profiles());
+    //log::info!("{:?}", get_current_config());
     /*for path in PathIter::current().unwrap() {
         println!("{:?}", path);
     }
