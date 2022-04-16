@@ -68,11 +68,6 @@ impl Config {
             }
         };
         if self.strict_git {
-            /*
-                get all current git configs
-                for all config_name
-                    git config config_name ""
-            */
             let out = match Command::new(git.clone()).arg("config").arg("--list").output() {
                 Ok(out) => out,
                 Err(e) => {
@@ -93,6 +88,14 @@ impl Config {
                                             .arg("config")
                                             .arg("--unset-all")
                                             .arg(config)
+                                            .output(){
+                    log::error!("Cannot unset git config {:?}", e);
+                    return
+                }
+                if let Err(e) = Command::new(git.clone())
+                                            .arg("config")
+                                            .arg(config)
+                                            .arg("")
                                             .output(){
                     log::error!("Cannot unset git config {:?}", e);
                     return
