@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::fs;
 use log;
 use simplelog;
+use std::process::Command;
+use which::which;
 
 pub struct PathIter{
     buf: PathBuf,
@@ -54,6 +56,68 @@ pub struct Config {
     show_current_profile: bool,
     interactive: bool,
     config: HashMap<String, String>,
+}
+
+impl Config {
+    fn apply(&self){
+        let git = match which("git") {
+            Ok(git) => git.into_os_string().into_string().unwrap(),
+            Err(e) => {
+                log::error!("Cannot find git commnd : {:?}", e);
+                return
+            }
+        };
+        if self.strict_git {
+            /*
+                get all current git configs
+                for all config_name
+                    git config config_name ""
+            */
+            let out = match Command::new(git.clone()).arg("config").arg("--list").output() {
+                Ok(out) => out,
+                Err(e) => {
+                    log::error!("Cannot get git configuretion {:?}", e);
+                    return
+                }
+            };
+            let out =  String::from_utf8_lossy(&out.stdout);
+            for line in out.lines(){
+                let (config, _) = match line.split_once("=") {
+                    Some((a, b)) => (a, b),
+                    None => { continue },
+                };
+                if config.starts_with("core.") { continue }
+                if config.starts_with("remote.") { continue }
+                if config.starts_with("branch.") { continue }
+                if let Err(e) = Command::new(git.clone())
+                                            .arg("config")
+                                            .arg("--unset-all")
+                                            .arg(config)
+                                            .output(){
+                    log::error!("Cannot unset git config {:?}", e);
+                    return
+                }
+            }
+        }
+        for (config, value) in self.config.clone().into_iter() {
+            if let Err(e) = Command::new(git.clone())
+                                        .arg("config")
+                                        .arg("--unset-all")
+                                        .arg(config.clone())
+                                        .output(){
+                log::error!("Cannot unset git config {:?}", e);
+                return
+            }
+            if let Err(e) = Command::new(git.clone())
+                                        .arg("config")
+                                        .arg(config)
+                                        .arg(value)
+                                        .output(){
+                log::error!("Cannot set git config {:?}", e);
+                return
+            }
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -349,8 +413,8 @@ fn main() {
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto
     ).unwrap();
-    log::info!("{:?}", get_current_profiles());
-    //log::info!("{:?}", get_current_config());
+    //log::info!("{:?}", get_current_profiles());
+    get_current_config().unwrap().0.apply();
     /*for path in PathIter::current().unwrap() {
         println!("{:?}", path);
     }
