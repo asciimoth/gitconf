@@ -6,6 +6,9 @@ use log;
 use simplelog;
 use std::process::Command;
 use which::which;
+use std::env;
+use std::{io, io::Write};
+use std::os::unix::process::CommandExt;
 
 pub struct PathIter{
     buf: PathBuf,
@@ -47,7 +50,6 @@ impl Iterator for PathIter {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Config {
     strict: bool,
@@ -59,12 +61,12 @@ pub struct Config {
 }
 
 impl Config {
-    fn apply(&self){
+    fn apply(&self) -> bool{
         let git = match which("git") {
             Ok(git) => git.into_os_string().into_string().unwrap(),
             Err(e) => {
-                log::error!("Cannot find git commnd : {:?}", e);
-                return
+                log::error!("Cannot find git command : {:?}", e);
+                return false
             }
         };
         if self.strict_git {
@@ -72,7 +74,7 @@ impl Config {
                 Ok(out) => out,
                 Err(e) => {
                     log::error!("Cannot get git configuretion {:?}", e);
-                    return
+                    return false
                 }
             };
             let out =  String::from_utf8_lossy(&out.stdout);
@@ -90,7 +92,7 @@ impl Config {
                                             .arg(config)
                                             .output(){
                     log::error!("Cannot unset git config {:?}", e);
-                    return
+                    return false
                 }
                 if let Err(e) = Command::new(git.clone())
                                             .arg("config")
@@ -98,7 +100,7 @@ impl Config {
                                             .arg("")
                                             .output(){
                     log::error!("Cannot unset git config {:?}", e);
-                    return
+                    return false
                 }
             }
         }
@@ -109,7 +111,7 @@ impl Config {
                                         .arg(config.clone())
                                         .output(){
                 log::error!("Cannot unset git config {:?}", e);
-                return
+                return false
             }
             if let Err(e) = Command::new(git.clone())
                                         .arg("config")
@@ -117,9 +119,10 @@ impl Config {
                                         .arg(value)
                                         .output(){
                 log::error!("Cannot set git config {:?}", e);
-                return
+                return false
             }
         }
+        true
     }
 }
 
@@ -380,7 +383,7 @@ fn get_profiles_for_path(mut cur_path: PathBuf) -> HashMap<String, PathBuf> {
             for entry in entrys {
                 if let Ok(entry) = entry {
                     let path = entry.path();
-                    let parsed: OptionConfig = match toml::from_str(
+                    match toml::from_str(
                         match fs::read_to_string(path.clone().into_os_string()){
                             Ok(s) => s,
                             Err(_) => {
@@ -409,6 +412,46 @@ fn get_current_profiles() -> std::io::Result<HashMap<String, PathBuf>>{
     Ok(get_profiles_for_path(buf))
 }
 
+fn set_profile(src: PathBuf, dst: PathBuf) -> bool {
+    let mut dst = {
+        let mut git = dst.clone();
+        git.push(".git");
+        if git.exists() {
+            git.push(".gitconf");
+            git.push("current");
+            git
+        }else{
+            let mut dst = dst.clone();
+            dst.push(".gitconf");
+            dst.push("current");
+            dst
+        }
+    };
+    if dst.exists() {
+        if dst.is_dir() {
+            if let Err(e) = std::fs::remove_dir_all(dst.clone()) {
+                log::error!("Cannot set profile {:?}", e);
+                return false
+            }
+        }else{
+            if let Err(e) = std::fs::remove_file(dst.clone()) {
+                log::error!("Cannot set profile {:?}", e);
+                return false
+            }
+        }
+    }
+    if let Err(e) = std::fs::create_dir_all(dst.clone()) {
+        log::error!("Cannot set profile {:?}", e);
+        return false
+    }
+    dst.push(src.file_name().unwrap());
+    if let Err(e) = std::fs::copy(src, dst) {
+        log::error!("Cannot set profile {:?}", e);
+        return false
+    }
+    return true
+}
+
 fn main() {
     simplelog::TermLogger::init(
         simplelog::LevelFilter::Debug,
@@ -416,15 +459,147 @@ fn main() {
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto
     ).unwrap();
-    //log::info!("{:?}", get_current_profiles());
-    get_current_config().unwrap().0.apply();
-    /*for path in PathIter::current().unwrap() {
-        println!("{:?}", path);
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "show-profiles" => {
+                let profiles = match get_current_profiles() {
+                    Ok(profiles) => profiles,
+                    Err(e) => {
+                        log::error!("Cannot get available profiles : {:?}", e);
+                        return
+                    }
+                };
+                log::info!("Available profiles:");
+                for (name, path) in profiles.into_iter() {
+                    println!("\t {} at {:?}", name, path);
+                }
+                return
+            }
+            "show-profile" => {
+                let (config, path) = match get_current_config() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        log::error!("Cannot get current profile : {:?}", e);
+                        return
+                    }
+                };
+                if let Some(path) = path {
+                    let buf = PathBuf::from(path.clone());
+                    let name = buf.file_name().unwrap().to_str().unwrap();
+                    log::info!("Current profile \"{}\" at {}", name, path);
+                }else{
+                    log::info!("Current profile is default");
+                }
+                for line in format!("{:#?}", config).lines() {
+                    println!("\t {}", line);
+                }
+                return
+            }
+            "set-profile" => {
+                let (config, _) = match get_current_config() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        log::error!("Cannot get current profile : {:?}", e);
+                        return
+                    }
+                };
+                let profiles = match get_current_profiles() {
+                    Ok(profiles) => profiles,
+                    Err(e) => {
+                        log::error!("Cannot get available profiles : {:?}", e);
+                        return
+                    }
+                };
+                if args.len() < 3 {
+                    if !config.interactive {
+                        log::error!("Profile not selected");
+                        return
+                    }
+                    // <TODO> Add interactive profile choise
+                    log::error!("Profile not selected");
+                    log::info!("Interactive mode is not available yet");
+                    return
+                }
+                let path = match profiles.get(&args[2]) {
+                    Some(path) => path.clone(),
+                    None => {
+                        log::error!("Could not find a profile with name \"{}\"", args[2]);
+                        return
+                    }
+                };
+                let cur = match std::env::current_dir() {
+                    Ok(cur) => cur,
+                    Err(e) => {
+                        log::error!("Could not set profile {:?}", e);
+                        return
+                    }
+                };
+                if set_profile(path.clone(), cur) {
+                    if get_current_config().unwrap().0.apply() {
+                        log::info!("Profile \"{}\" has been successfully set from {:?}",
+                                        args[2],
+                                        path
+                        );
+                    }
+                }
+            }
+            "set-profile-path" => {
+                if args.len() < 3 {
+                    log::error!("Profile not selected");
+                    return
+                }
+                let path = PathBuf::from(args[2].clone());
+                let cur = match std::env::current_dir() {
+                    Ok(cur) => cur,
+                    Err(e) => {
+                        log::error!("Could not set profile {:?}", e);
+                        return
+                    }
+                };
+                if set_profile(path.clone(), cur) {
+                    if get_current_config().unwrap().0.apply() {
+                        log::info!("Profile \"{}\" has been successfully set from {:?}",
+                                        args[2],
+                                        path
+                        );
+                    }
+                }
+            }
+            _ => {
+                // Regular git command
+                let git = match which("git") {
+                    Ok(git) => git.into_os_string().into_string().unwrap(),
+                    Err(e) => {
+                        log::error!("Cannot find git command : {:?}", e);
+                        return
+                    }
+                };
+                // <TODO> Add interactive profile selection when first use gitconf in repo
+                let (config, path) = match get_current_config() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        log::error!("Cannot get current profile : {:?}", e);
+                        return
+                    }
+                };
+                if !config.apply() { return }
+                if config.show_current_profile {
+                    if let Some(path) = path {
+                        let buf = PathBuf::from(path.clone());
+                        let name = buf.file_name().unwrap().to_str().unwrap();
+                        log::info!("Current profile \"{}\" at {}", name, path);
+                    }else{
+                        log::info!("Current profile is default");
+                    }
+                }
+                let mut command = Command::new(git);
+                for arg in args[1..].iter() {
+                    command.arg(arg);
+                }
+                let err = command.exec();
+                log::error!("Cannot run git command {:?}", err);
+            }
+        }
     }
-    for path in PathIter::current().unwrap().collect::<Vec<PathBuf>>().iter().rev() {
-        println!("{:?}", path);
-    }
-    for path in PathIter::new(PathBuf::from("/etc/a/b/c/d")) {
-        println!("{:?}", path);
-    }*/
 }
