@@ -1,3 +1,11 @@
+// Gitconf by DomesticMoth
+//
+// To the extent possible under law, the person who associated CC0 with
+// gitconf has waived all copyright and related or neighboring rights
+// to gitconf.
+//
+// You should have received a copy of the CC0 legalcode along with this
+// work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 use crate::cfg::Config;
 use crate::cfg::OptionConfig;
 use crate::pth::PathIter;
