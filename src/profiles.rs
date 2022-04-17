@@ -62,7 +62,6 @@ pub fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<Str
                 config_path = Some(files[0].clone().into_os_string().into_string().unwrap());
                 opt.merge(&cur_conf);
             }else if files.len() > 1 {
-                // Log msg that there can be only one current config
                 log::warn!("There can be only one current config; More than one config found in {:?}", path);
             }
         }
@@ -105,7 +104,6 @@ pub fn get_profiles_for_path(mut cur_path: PathBuf) -> HashMap<String, PathBuf> 
                             continue
                         }
                     };
-                    //log::info!("Succsess parse config {:?}", path);
                     profiles.insert(path.file_name().unwrap().to_str().unwrap().to_string(), path);
                 }
             }

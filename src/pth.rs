@@ -22,10 +22,6 @@ impl PathIter {
             last: PathBuf::from("/"),
         }
     }
-    /*pub fn current() -> std::io::Result<Self> {
-        let buf = std::env::current_dir()?;
-        Ok(Self::new(buf))
-    }*/
 }
 
 impl Iterator for PathIter {
