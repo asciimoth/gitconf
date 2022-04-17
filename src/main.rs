@@ -176,8 +176,6 @@ fn main() {
             return
         }
     };
-    config.interactive = true;
-    config.select_profile_on_first_use = true;
     if config.interactive && config.select_profile_on_first_use {
         let mut dir = std::env::current_dir().unwrap();
         dir.push(".git");

@@ -168,7 +168,7 @@ impl OptionConfig {
 
 #[cfg(test)]
 mod tests_option_config {
-    use crate::*;
+    use crate::cfg::*;
     #[test]
     pub fn test_to_config() {
         let mut config = HashMap::new();
