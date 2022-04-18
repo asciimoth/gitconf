@@ -149,6 +149,7 @@ fn cmd_set_profile(args: Vec<String>){
 }
 
 fn run_git_command(args: Vec<String>){
+    // Get path to git executable
     let git = match which("git") {
         Ok(git) => git.into_os_string().into_string().unwrap(),
         Err(e) => {
@@ -156,6 +157,7 @@ fn run_git_command(args: Vec<String>){
             return
         }
     };
+    // Collect cuurent profile configuration
     let (mut config, mut path) = match get_current_config() {
         Ok(v) => v,
         Err(e) => {
@@ -163,12 +165,16 @@ fn run_git_command(args: Vec<String>){
             return
         }
     };
+    // If SelectProfileOnFirstUse and Interactive mods enable
     if config.interactive && config.select_profile_on_first_use {
+        // If current path is git repo
         let mut dir = std::env::current_dir().unwrap();
         dir.push(".git");
         if dir.exists() && dir.is_dir() {
             dir.push(".gitconf");
+            // If first use gitconf in this repo
             if !dir.exists() {
+                // Grub availablse profiles
                 let profiles = match get_current_profiles() {
                     Ok(profiles) => profiles,
                     Err(e) => {
@@ -176,29 +182,30 @@ fn run_git_command(args: Vec<String>){
                         return
                     }
                 };
-                log::debug!("{:?}", profiles);
+                // If there is at least one available profile
                 if profiles.len() > 0 {
+                    // Display dialog with the profile selection
                     if let Some(name) = select_tui(profiles.keys().map(|f| f.clone()).collect()) {
                         dir.pop();
                         dir.pop();
                         let p = profiles.get(&name).unwrap();
+                        // Setup selected profile
                         if set_profile(p.clone(), dir) {
-                            if get_current_config().unwrap().0.apply() {
-                                let r = match get_current_config() {
-                                    Ok(v) => v,
-                                    Err(e) => {
-                                        log::error!("Cannot get current profile : {:?}", e);
-                                        return
-                                    }
-                                };
-                                config = r.0;
-                                path = r.1;
-                                log::info!("Profile \"{}\" has been successfully set from {:?}",
-                                                name,
-                                                p
-                                );
-                            }
+                            // Update info about current profile
+                            let r = match get_current_config() {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    log::error!("Cannot get current profile : {:?}", e);
+                                    return
+                                }
+                            };
+                            config = r.0;
+                            path = r.1;
+                        }else{
+                            log::error!("Cannot setup selected profile");
+                            return
                         }
+                    // Else creade viod .git/.gitconf dir
                     }else{
                         if let Err(_) = std::fs::create_dir_all(dir){} // No matter
                     }
@@ -208,6 +215,7 @@ fn run_git_command(args: Vec<String>){
             }
         }
     } 
+    // Apply current profile
     if !config.apply() { return }
     if config.show_current_profile {
         if let Some(path) = path {
@@ -218,6 +226,7 @@ fn run_git_command(args: Vec<String>){
             log::info!("Current profile is default");
         }
     }
+    // Exec git command
     let mut command = Command::new(git);
     for arg in args[1..].iter() {
         command.arg(arg);
@@ -227,13 +236,16 @@ fn run_git_command(args: Vec<String>){
 }
 
 fn main() {
+    // Setup terminal logget
     simplelog::TermLogger::init(
         simplelog::LevelFilter::Debug,
         simplelog::ConfigBuilder::new().set_time_format_str("").build(),
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto
     ).unwrap();
+    // Collect environment args
     let args: Vec<String> = env::args().collect();
+    // Command selection based on the first env argument
     let cmd = if args.len() > 1 {
         match args[1].as_str() {
             "show-profiles" => { cmd_show_profiles }
@@ -243,5 +255,6 @@ fn main() {
             _ => {run_git_command}
         }
     }else{ run_git_command };
+    // Run selected command
     cmd(args);
 }
