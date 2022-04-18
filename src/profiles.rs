@@ -10,9 +10,9 @@ use crate::cfg::Config;
 use crate::cfg::OptionConfig;
 use crate::pth::PathIter;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 fn prepend<T>(v: Vec<T>, s: T) -> Vec<T>
 where
@@ -24,7 +24,7 @@ where
     tmp
 }
 
-pub fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<String>){
+pub fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<String>) {
     let mut config_path: Option<String> = None;
     let mut opt = OptionConfig::new();
     let mut pathes = PathIter::new(cur_path.clone()).collect::<Vec<PathBuf>>();
@@ -45,23 +45,24 @@ pub fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<Str
             }
             if files.len() == 1 {
                 let cur_conf: OptionConfig = match toml::from_str(
-                    match fs::read_to_string(files[0].clone().into_os_string()){
+                    match fs::read_to_string(files[0].clone().into_os_string()) {
                         Ok(s) => s,
                         Err(_) => {
                             log::warn!("Cannot read config {:?}", files[0]);
-                            continue
+                            continue;
                         }
-                    }.as_str()
-                ){
+                    }
+                    .as_str(),
+                ) {
                     Ok(cur_conf) => cur_conf,
                     Err(e) => {
                         log::warn!("Cannot parse config {:?} {:?}", files[0], e);
-                        continue
+                        continue;
                     }
                 };
                 config_path = Some(files[0].clone().into_os_string().into_string().unwrap());
                 opt.merge(&cur_conf);
-            }else if files.len() > 1 {
+            } else if files.len() > 1 {
                 log::warn!("There can be only one current config; More than one config found in {:?}", path);
             }
         }
@@ -69,7 +70,7 @@ pub fn get_current_config_for_path(mut cur_path: PathBuf) -> (Config, Option<Str
     (opt.to_config(), config_path)
 }
 
-pub fn get_current_config() -> std::io::Result<(Config, Option<String>)>{
+pub fn get_current_config() -> std::io::Result<(Config, Option<String>)> {
     let buf = std::env::current_dir()?;
     Ok(get_current_config_for_path(buf))
 }
@@ -89,19 +90,20 @@ pub fn get_profiles_for_path(mut cur_path: PathBuf) -> HashMap<String, PathBuf> 
             for entry in entrys {
                 if let Ok(entry) = entry {
                     let path = entry.path();
-                    let _: OptionConfig =  match toml::from_str(
-                        match fs::read_to_string(path.clone().into_os_string()){
+                    let _: OptionConfig = match toml::from_str(
+                        match fs::read_to_string(path.clone().into_os_string()) {
                             Ok(s) => s,
                             Err(_) => {
                                 log::warn!("Cannot read config {:?}", path);
-                                continue
+                                continue;
                             }
-                        }.as_str()
-                    ){
+                        }
+                        .as_str(),
+                    ) {
                         Ok(cur_conf) => cur_conf,
                         Err(e) => {
                             log::warn!("Cannot parse config {:?} {:?}", path, e);
-                            continue
+                            continue;
                         }
                     };
                     profiles.insert(path.file_name().unwrap().to_str().unwrap().to_string(), path);
@@ -112,7 +114,7 @@ pub fn get_profiles_for_path(mut cur_path: PathBuf) -> HashMap<String, PathBuf> 
     profiles
 }
 
-pub fn get_current_profiles() -> std::io::Result<HashMap<String, PathBuf>>{
+pub fn get_current_profiles() -> std::io::Result<HashMap<String, PathBuf>> {
     let buf = std::env::current_dir()?;
     Ok(get_profiles_for_path(buf))
 }
@@ -125,7 +127,7 @@ pub fn set_profile(src: PathBuf, dst: PathBuf) -> bool {
             git.push(".gitconf");
             git.push("current");
             git
-        }else{
+        } else {
             let mut dst = dst.clone();
             dst.push(".gitconf");
             dst.push("current");
@@ -136,23 +138,23 @@ pub fn set_profile(src: PathBuf, dst: PathBuf) -> bool {
         if dst.is_dir() {
             if let Err(e) = std::fs::remove_dir_all(dst.clone()) {
                 log::error!("Cannot set profile {:?}", e);
-                return false
+                return false;
             }
-        }else{
+        } else {
             if let Err(e) = std::fs::remove_file(dst.clone()) {
                 log::error!("Cannot set profile {:?}", e);
-                return false
+                return false;
             }
         }
     }
     if let Err(e) = std::fs::create_dir_all(dst.clone()) {
         log::error!("Cannot set profile {:?}", e);
-        return false
+        return false;
     }
     dst.push(src.file_name().unwrap());
     if let Err(e) = std::fs::copy(src, dst) {
         log::error!("Cannot set profile {:?}", e);
-        return false
+        return false;
     }
-    return true
+    return true;
 }

@@ -6,10 +6,10 @@
 //
 // You should have received a copy of the CC0 legalcode along with this
 // work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::Command;
 use which::which;
-use serde::Deserialize;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Config {
@@ -22,12 +22,12 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn apply(&self) -> bool{
+    pub fn apply(&self) -> bool {
         let git = match which("git") {
             Ok(git) => git.into_os_string().into_string().unwrap(),
             Err(e) => {
                 log::error!("Cannot find git command : {:?}", e);
-                return false
+                return false;
             }
         };
         if self.strict_git {
@@ -35,52 +35,42 @@ impl Config {
                 Ok(out) => out,
                 Err(e) => {
                     log::error!("Cannot get git configuretion {:?}", e);
-                    return false
+                    return false;
                 }
             };
-            let out =  String::from_utf8_lossy(&out.stdout);
-            for line in out.lines(){
+            let out = String::from_utf8_lossy(&out.stdout);
+            for line in out.lines() {
                 let (config, _) = match line.split_once("=") {
                     Some((a, b)) => (a, b),
-                    None => { continue },
+                    None => continue,
                 };
-                if config.starts_with("core.") { continue }
-                if config.starts_with("remote.") { continue }
-                if config.starts_with("branch.") { continue }
-                if let Err(e) = Command::new(git.clone())
-                                            .arg("config")
-                                            .arg("--unset-all")
-                                            .arg(config)
-                                            .output(){
-                    log::error!("Cannot unset git config {:?}", e);
-                    return false
+                if config.starts_with("core.") {
+                    continue;
                 }
-                if let Err(e) = Command::new(git.clone())
-                                            .arg("config")
-                                            .arg(config)
-                                            .arg("")
-                                            .output(){
+                if config.starts_with("remote.") {
+                    continue;
+                }
+                if config.starts_with("branch.") {
+                    continue;
+                }
+                if let Err(e) = Command::new(git.clone()).arg("config").arg("--unset-all").arg(config).output() {
                     log::error!("Cannot unset git config {:?}", e);
-                    return false
+                    return false;
+                }
+                if let Err(e) = Command::new(git.clone()).arg("config").arg(config).arg("").output() {
+                    log::error!("Cannot unset git config {:?}", e);
+                    return false;
                 }
             }
         }
         for (config, value) in self.config.clone().into_iter() {
-            if let Err(e) = Command::new(git.clone())
-                                        .arg("config")
-                                        .arg("--unset-all")
-                                        .arg(config.clone())
-                                        .output(){
+            if let Err(e) = Command::new(git.clone()).arg("config").arg("--unset-all").arg(config.clone()).output() {
                 log::error!("Cannot unset git config {:?}", e);
-                return false
+                return false;
             }
-            if let Err(e) = Command::new(git.clone())
-                                        .arg("config")
-                                        .arg(config)
-                                        .arg(value)
-                                        .output(){
+            if let Err(e) = Command::new(git.clone()).arg("config").arg(config).arg(value).output() {
                 log::error!("Cannot set git config {:?}", e);
-                return false
+                return false;
             }
         }
         true
@@ -105,7 +95,7 @@ pub struct OptionConfig {
 
 impl OptionConfig {
     pub fn new() -> Self {
-        Self{
+        Self {
             strict: None,
             strict_git: None,
             select_profile_on_first_use: None,
@@ -118,7 +108,7 @@ impl OptionConfig {
         let mut default_config = HashMap::<String, String>::new();
         default_config.insert(String::from("user.name"), String::from("John Doe"));
         default_config.insert(String::from("user.email"), String::from(""));
-        Config{
+        Config {
             strict: self.strict.unwrap_or(false),
             strict_git: self.strict_git.unwrap_or(true),
             select_profile_on_first_use: self.select_profile_on_first_use.unwrap_or(false),
@@ -135,7 +125,7 @@ impl OptionConfig {
             self.show_current_profile = other.show_current_profile;
             self.interactive = other.interactive;
             self.config = other.config.clone();
-        }else{
+        } else {
             if let Some(v) = other.strict {
                 self.strict = Some(v)
             }
@@ -154,8 +144,8 @@ impl OptionConfig {
             if let Some(other_config) = other.config.clone() {
                 // Merge configs
                 let mut config = match &self.config {
-                    Some(self_config) => { self_config.clone() }
-                    None => { HashMap::<String, String>::new() }
+                    Some(self_config) => self_config.clone(),
+                    None => HashMap::<String, String>::new(),
                 };
                 for (key, value) in other_config.into_iter() {
                     config.insert(key, value);
@@ -173,7 +163,7 @@ mod tests_option_config {
     pub fn test_to_config() {
         let mut config = HashMap::new();
         config.insert(String::from("user.name"), String::from("John Doe"));
-        let option_config = OptionConfig{
+        let option_config = OptionConfig {
             strict: Some(false),
             strict_git: Some(true),
             select_profile_on_first_use: Some(false),
@@ -181,7 +171,7 @@ mod tests_option_config {
             interactive: None,
             config: Some(config.clone()),
         };
-        let config = Config{
+        let config = Config {
             strict: false,
             strict_git: true,
             select_profile_on_first_use: false,
@@ -192,16 +182,16 @@ mod tests_option_config {
         assert_eq!(option_config.to_config(), config);
     }
     #[test]
-    pub fn test_parcing_none(){
+    pub fn test_parcing_none() {
         let correct = OptionConfig::new();
         let parced: OptionConfig = toml::from_str("\n").unwrap();
         assert_eq!(correct, parced);
     }
     #[test]
-    pub fn test_parcing(){
+    pub fn test_parcing() {
         let mut config = HashMap::new();
         config.insert(String::from("user.name"), String::from("John Doe"));
-        let correct = OptionConfig{
+        let correct = OptionConfig {
             strict: Some(false),
             strict_git: Some(true),
             select_profile_on_first_use: Some(false),
@@ -209,22 +199,25 @@ mod tests_option_config {
             interactive: Some(false),
             config: Some(config),
         };
-        let parced: OptionConfig = toml::from_str(r#"
+        let parced: OptionConfig = toml::from_str(
+            r#"
             Strict = false
             StrictGit = true
             SelectProfileOnFirstUse = false
             ShowCurrentProfile = true
             Interactive = false
             Config = { "user.name" = "John Doe" }
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         assert_eq!(correct, parced);
     }
     #[test]
-    pub fn test_merge(){
+    pub fn test_merge() {
         let mut config = HashMap::new();
         config.insert(String::from("b"), String::from("2"));
         config.insert(String::from("c"), String::from("3"));
-        let correct = OptionConfig{
+        let correct = OptionConfig {
             strict: Some(false),
             strict_git: None,
             select_profile_on_first_use: Some(false),
@@ -234,7 +227,7 @@ mod tests_option_config {
         };
         let mut config = HashMap::new();
         config.insert(String::from("a"), String::from("1"));
-        let first = OptionConfig{
+        let first = OptionConfig {
             strict: Some(true),
             strict_git: Some(true),
             select_profile_on_first_use: Some(true),
@@ -244,7 +237,7 @@ mod tests_option_config {
         };
         let mut config = HashMap::new();
         config.insert(String::from("b"), String::from("2"));
-        let second = OptionConfig{
+        let second = OptionConfig {
             strict: Some(true),
             strict_git: None,
             select_profile_on_first_use: None,
@@ -254,7 +247,7 @@ mod tests_option_config {
         };
         let mut config = HashMap::new();
         config.insert(String::from("c"), String::from("3"));
-        let third = OptionConfig{
+        let third = OptionConfig {
             strict: Some(false),
             strict_git: None,
             select_profile_on_first_use: Some(false),

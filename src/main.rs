@@ -6,34 +6,35 @@
 //
 // You should have received a copy of the CC0 legalcode along with this
 // work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-mod pth;
 mod cfg;
 mod profiles;
+mod pth;
 
-use profiles::{get_current_profiles, get_current_config, set_profile};
-use std::path::PathBuf;
+use inquire::Select;
 use log;
+use profiles::{get_current_config, get_current_profiles, set_profile};
 use simplelog;
-use std::process::Command;
-use which::which;
 use std::env;
 use std::os::unix::process::CommandExt;
-use inquire::Select;
-
+use std::path::PathBuf;
+use std::process::Command;
+use which::which;
 
 fn select_tui(options: Vec<String>) -> Option<String> {
     let opt = vec!["Yes", "No"];
-    if Select::new("Setup profile", opt).prompt().unwrap() == "No" { return None }
+    if Select::new("Setup profile", opt).prompt().unwrap() == "No" {
+        return None;
+    }
     let choice = Select::new("Selected profile", options).prompt().unwrap();
     Some(choice)
 }
 
-fn cmd_show_profiles(_args: Vec<String>){
+fn cmd_show_profiles(_args: Vec<String>) {
     let profiles = match get_current_profiles() {
         Ok(profiles) => profiles,
         Err(e) => {
             log::error!("Cannot get available profiles : {:?}", e);
-            return
+            return;
         }
     };
     if profiles.len() > 0 {
@@ -41,24 +42,24 @@ fn cmd_show_profiles(_args: Vec<String>){
         for (name, path) in profiles.into_iter() {
             println!("\t {} at {:?}", name, path);
         }
-    }else{
+    } else {
         log::info!("There is no available profiles");
     }
 }
 
-fn cmd_show_profile(_args: Vec<String>){
+fn cmd_show_profile(_args: Vec<String>) {
     let (config, path) = match get_current_config() {
         Ok(v) => v,
         Err(e) => {
             log::error!("Cannot get current profile : {:?}", e);
-            return
+            return;
         }
     };
     if let Some(path) = path {
         let buf = PathBuf::from(path.clone());
         let name = buf.file_name().unwrap().to_str().unwrap();
         log::info!("Current profile \"{}\" at {}", name, path);
-    }else{
+    } else {
         log::info!("Current profile is default");
     }
     for line in format!("{:#?}", config).lines() {
@@ -66,59 +67,56 @@ fn cmd_show_profile(_args: Vec<String>){
     }
 }
 
-fn cmd_set_profile_path(args: Vec<String>){
+fn cmd_set_profile_path(args: Vec<String>) {
     if args.len() < 3 {
         log::error!("Profile not selected");
-        return
+        return;
     }
     let path = PathBuf::from(args[2].clone());
     let cur = match std::env::current_dir() {
         Ok(cur) => cur,
         Err(e) => {
             log::error!("Could not set profile {:?}", e);
-            return
+            return;
         }
     };
     if set_profile(path.clone(), cur) {
         if get_current_config().unwrap().0.apply() {
-            log::info!("Profile \"{}\" has been successfully set from {:?}",
-                            args[2],
-                            path
-            );
+            log::info!("Profile \"{}\" has been successfully set from {:?}", args[2], path);
         }
     }
 }
 
-fn cmd_set_profile(args: Vec<String>){
+fn cmd_set_profile(args: Vec<String>) {
     let (config, _) = match get_current_config() {
         Ok(v) => v,
         Err(e) => {
             log::error!("Cannot get current profile : {:?}", e);
-            return
+            return;
         }
     };
     let profiles = match get_current_profiles() {
         Ok(profiles) => profiles,
         Err(e) => {
             log::error!("Cannot get available profiles : {:?}", e);
-            return
+            return;
         }
     };
     if profiles.len() < 1 {
         log::error!("There is no available profiles");
-        return
+        return;
     }
     let mut name = String::from("");
     if args.len() < 3 {
         if !config.interactive {
             log::error!("Profile not selected");
-            return
+            return;
         }
         if let Some(n) = select_tui(profiles.keys().map(|f| f.clone()).collect()) {
             name = n;
-        }else{
+        } else {
             log::error!("Profile not selected");
-            return
+            return;
         }
     }
     if name.as_str() == "" {
@@ -128,33 +126,30 @@ fn cmd_set_profile(args: Vec<String>){
         Some(path) => path.clone(),
         None => {
             log::error!("Could not find a profile with name \"{}\"", args[2]);
-            return
+            return;
         }
     };
     let cur = match std::env::current_dir() {
         Ok(cur) => cur,
         Err(e) => {
             log::error!("Could not set profile {:?}", e);
-            return
+            return;
         }
     };
     if set_profile(path.clone(), cur) {
         if get_current_config().unwrap().0.apply() {
-            log::info!("Profile \"{}\" has been successfully set from {:?}",
-                            name,
-                            path
-            );
+            log::info!("Profile \"{}\" has been successfully set from {:?}", name, path);
         }
     }
 }
 
-fn run_git_command(args: Vec<String>){
+fn run_git_command(args: Vec<String>) {
     // Get path to git executable
     let git = match which("git") {
         Ok(git) => git.into_os_string().into_string().unwrap(),
         Err(e) => {
             log::error!("Cannot find git command : {:?}", e);
-            return
+            return;
         }
     };
     // Collect cuurent profile configuration
@@ -162,7 +157,7 @@ fn run_git_command(args: Vec<String>){
         Ok(v) => v,
         Err(e) => {
             log::error!("Cannot get current profile : {:?}", e);
-            return
+            return;
         }
     };
     // If SelectProfileOnFirstUse and Interactive mods enable
@@ -179,7 +174,7 @@ fn run_git_command(args: Vec<String>){
                     Ok(profiles) => profiles,
                     Err(e) => {
                         log::error!("Cannot get available profiles : {:?}", e);
-                        return
+                        return;
                     }
                 };
                 // If there is at least one available profile
@@ -196,33 +191,35 @@ fn run_git_command(args: Vec<String>){
                                 Ok(v) => v,
                                 Err(e) => {
                                     log::error!("Cannot get current profile : {:?}", e);
-                                    return
+                                    return;
                                 }
                             };
                             config = r.0;
                             path = r.1;
-                        }else{
+                        } else {
                             log::error!("Cannot setup selected profile");
-                            return
+                            return;
                         }
                     // Else creade viod .git/.gitconf dir
-                    }else{
-                        if let Err(_) = std::fs::create_dir_all(dir){} // No matter
+                    } else {
+                        if let Err(_) = std::fs::create_dir_all(dir) {} // No matter
                     }
-                }else{
-                    if let Err(_) = std::fs::create_dir_all(dir){} // No matter
+                } else {
+                    if let Err(_) = std::fs::create_dir_all(dir) {} // No matter
                 }
             }
         }
-    } 
+    }
     // Apply current profile
-    if !config.apply() { return }
+    if !config.apply() {
+        return;
+    }
     if config.show_current_profile {
         if let Some(path) = path {
             let buf = PathBuf::from(path.clone());
             let name = buf.file_name().unwrap().to_str().unwrap();
             log::info!("Current profile \"{}\" at {}", name, path);
-        }else{
+        } else {
             log::info!("Current profile is default");
         }
     }
@@ -241,20 +238,23 @@ fn main() {
         simplelog::LevelFilter::Debug,
         simplelog::ConfigBuilder::new().set_time_format_str("").build(),
         simplelog::TerminalMode::Mixed,
-        simplelog::ColorChoice::Auto
-    ).unwrap();
+        simplelog::ColorChoice::Auto,
+    )
+    .unwrap();
     // Collect environment args
     let args: Vec<String> = env::args().collect();
     // Command selection based on the first env argument
     let cmd = if args.len() > 1 {
         match args[1].as_str() {
-            "show-profiles" => { cmd_show_profiles }
-            "show-profile" => { cmd_show_profile }
-            "set-profile" => { cmd_set_profile }
-            "set-profile-path" => { cmd_set_profile_path }
-            _ => {run_git_command}
+            "show-profiles" => cmd_show_profiles,
+            "show-profile" => cmd_show_profile,
+            "set-profile" => cmd_set_profile,
+            "set-profile-path" => cmd_set_profile_path,
+            _ => run_git_command,
         }
-    }else{ run_git_command };
+    } else {
+        run_git_command
+    };
     // Run selected command
     cmd(args);
 }
