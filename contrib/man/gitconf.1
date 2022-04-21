@@ -1,0 +1,94 @@
+'\" t
+.TH "Gitconf" "1" "04/20/2022" "Gitconf 0.1.0" "Gitconf 0.1.0"
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.nh
+.ad l
+.SH "NAME"
+gitconf - overlay utility for more convenient and flexible configuration of git
+.SH "SYNOPSIS"
+gitconf <command> [<args>]
+.SH "DESCRIPTION"
+Git allows you to set local and global settings, but the management of these settings leaves much to be desired. 
+.sp
+The gitconf tool works as an overlay that adds a configuration profile mechanism to git.
+With gitconf, you can create multiple git settings profiles in the system and switch between these profiles in each specific repository with one command.
+.sp
+Since gitconf is an overlay, you can execute all classic git commands through it.
+For example, "gitconf clone" instead of "git clone".
+In this case, gitconf will make sure that the git settings match the selected profile before executing the command.
+You can also set up an interactive profile selection dialog that is displayed when you start working with a new repository.
+.SH "SUBCOMMANDS"
+Gitconfig inherits all existing git commands but also adds a few of its own.
+.sp
+.PP
+\fBshow-profiles\fR
+.RS 4
+Shows a list of all settings profiles visible from the current directory.
+.RE
+.PP
+\fBshow-profile\fR
+.RS 4
+Showssettings contained in the selected profile. Accepts the profile name as a single argument.
+.RE
+.PP
+\fBset-profile\fR
+.RS 4
+Sets the selected profile in the current directory. Accepts the profile name as a single argument.
+.RE
+.PP
+\fBset-profile-path\fR
+.RS 4
+Installs the profile file located at the specified path in the current directory.
+Accepts the path to the profile file as a single argument.
+.RE
+.SH "CONFIGURATION MECHANISM"
+Gitconf stores configuration data in directories named ".gitconf".
+Gitconf is looking for a directory .gitconf by the path in which it is launched and by each parent path.
+Profiles are stored in .gitconf/profiles as toml files.
+A copy of the currently selected profile is stored in .gitconf/current.
+Configs located on the closer path takes precedence over what is further away.
+Similar to how it is done in git, the global settings file is read first, and then all the lower ones in turn.
+Each config overrides or extends parameters of the higher one.
+Also the config located in /etc/.gitconf is considered the most global.
+.SH "CONFIGURATION OPTIONS"
+Profile file can contain the following parameters
+.sp
+.PP
+\fBStrict\fR
+.RS 4
+Boolean option telling gitconf to ignore all higher-level configs. By default, false.
+.RE
+.PP
+\fBStrictGit\fR
+.RS 4
+A boolean option instructing gitconf to overwrite any git settings made not through gitconf itself.
+By default, true.
+.RE
+.PP
+\fBSelectProfileOnFirstUse\fR
+.RS 4
+Show the profile dialog with the profile selection when starting work in a new repository. By default, false.
+.RE
+.PP
+\fBShowCurrentProfile\fR
+.RS 4
+Print the name of the current profile in stdout when calling the git command. By default, true.
+.RE
+.PP
+\fBInteractive\fR
+.RS 4
+Enables showing interactive dialogs. By default, false.
+.RE
+.PP
+\fBConfig\fR
+.RS 4
+Key-value dictionary. The gle key is a git parameter and the value is its value.
+.RE
+.sp
+Usually, when installing giconf, the default config is created in "/etc/.gitconf/current/DEFAULT".
+You can use it as an example.
+.SH "AUTHORS"
+Developed by DomesticMoth <silkmoth@protonmail.com>
+.SH "SEE ALSO"
+git(1)
