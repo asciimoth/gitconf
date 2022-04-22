@@ -1,0 +1,6 @@
+Strict = true
+StrictGit = true
+SelectProfileOnFirstUse = false
+ShowCurrentProfile = true
+Interactive = false
+Config = {"user.name"="John Doe", "user.email"=""}
