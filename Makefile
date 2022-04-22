@@ -30,12 +30,14 @@ build-x64:
 	cargo build --release --offline --target=x86_64-unknown-linux-musl
 	mkdir -p ./out
 	cp target/x86_64-unknown-linux-musl/release/gitconf out/gitconf
+	gzip -cf out/gitconf > out/gitconf-x64.gz
 
 build-arm7:
 	rustup target add armv7-unknown-linux-musleabi
 	cargo build --release --offline --target=armv7-unknown-linux-musleabi
 	mkdir -p ./out
 	cp target/armv7-unknown-linux-musleabi/release/gitconf out/gitconf
+	gzip -cf out/gitconf > out/gitconf-arm7.gz
 
 build: build-man build-native
 
