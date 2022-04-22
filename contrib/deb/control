@@ -1,0 +1,5 @@
+Maintainer: DomesticMoth
+Section: utils
+Description: Overlay utility for more convenient and flexible configuration of git
+Recommends: git
+Origin: https://github.com/DomesticMoth/gitconf
