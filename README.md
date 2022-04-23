@@ -23,7 +23,7 @@ Sets the selected profile in the current directory. Accepts the profile name as 
 Installs the profile file located at the specified path in the current directory.  
 Accepts the path to the profile file as a single argument.
 
-# Configurarion Mechanism
+# Configuration Mechanism
 Gitconf stores configuration data in directories named **.gitconf**.
 Gitconf is looking for a directory **.gitconf** by the path in which it is launched and by each parent path.
 Profiles are stored in **.gitconf/profiles** as toml files.
