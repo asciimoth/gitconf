@@ -75,6 +75,13 @@ build-deb-arm7: build-arm7 create-deb-template
 	cp out/gitconf out/$(PKG_NAME)-deb-arm7/usr/bin/gitconf
 	dpkg-deb --build out/$(PKG_NAME)-deb-arm7
 
+install-deb-x64:
+	apt install out/$(PKG_NAME)-deb-x64
+
+build-deb-arm7:
+	apt install out/$(PKG_NAME)-deb-arm7
+
+
 install:
 	cp out/gitconf /usr/bin/gitconf
 	cp out/gitconf.1.gz /usr/share/man/man1/gitconf.1.gz
