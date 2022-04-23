@@ -93,3 +93,7 @@ make build-deb-x64
 make build-deb-arm7
 # Builded packages are saved in the ./out directory
 ```
+## From [crates.io](https://crates.io)
+```
+cargo install gitconf
+```
