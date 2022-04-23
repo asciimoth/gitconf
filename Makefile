@@ -1,6 +1,7 @@
 PKG_NAME = $(shell basename -s .git $$(git remote get-url origin))
 PKG_VERSION = $(shell echo "$$(cargo pkgid | cut -d# -f2-)-$$(git rev-list --all --count)")
 BRANCH = $(shell echo "-$$(git rev-parse --abbrev-ref HEAD)")
+OFFLINE = " "
 
 ifeq "$(BRANCH)" "-main"
 BRANCH = ""
@@ -10,7 +11,12 @@ ifeq "$(BRANCH)" "-master"
 BRANCH = ""
 endif
 
+ifeq "$(OFFLINE)" "TRUE"
+override OFFLINE = "--offline"
+endif
+
 PKG_NAME := "$(PKG_NAME)$(BRANCH)"
+BUILD_COMMNAD = $(shell echo "cargo build --release $(OFFLINE)")
 
 clear:
 	rm -rf ./out
@@ -21,20 +27,20 @@ build-man:
 	gzip -cf contrib/man/gitconf.1 > ./out/gitconf.1.gz
 
 build-native:
-	cargo build --release --offline
+	$(BUILD_COMMNAD)
 	mkdir -p ./out
 	cp target/release/gitconf out/gitconf
 
 build-x64:
 	rustup target add x86_64-unknown-linux-musl
-	cargo build --release --offline --target=x86_64-unknown-linux-musl
+	$(BUILD_COMMNAD) --target=x86_64-unknown-linux-musl
 	mkdir -p ./out
 	cp target/x86_64-unknown-linux-musl/release/gitconf out/gitconf
 	gzip -cf out/gitconf > out/gitconf-x64.gz
 
 build-arm7:
 	rustup target add armv7-unknown-linux-musleabi
-	cargo build --release --offline --target=armv7-unknown-linux-musleabi
+	$(BUILD_COMMNAD) --target=armv7-unknown-linux-musleabi
 	mkdir -p ./out
 	cp target/armv7-unknown-linux-musleabi/release/gitconf out/gitconf
 	gzip -cf out/gitconf > out/gitconf-arm7.gz
