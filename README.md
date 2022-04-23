@@ -67,7 +67,14 @@ make build
 sudo make install
 ```
 ## Download deb package
-You may download prebuilt deb packages from [releases page](https://github.com/DomesticMoth/gitconf/releases)
+You may download prebuilt deb packages from [releases page](https://github.com/DomesticMoth/gitconf/releases)   
+v0.1.0 sha1 checksums 
+``` 
+gitconf-arm7.gz      f597a8d3ae7416713364b5be9221f0cef5608c02
+gitconf-x64.gz       1c917fad94e14c5672f0f8272ff1b7bba7803a1a
+gitconf-deb-arm7.deb b2b4bc614a88466c44012bf0ee5f700f93c4e146
+gitconf-deb-x64.deb  6d61db782b4ac1a74aca1f80ea6c91547f7c7642
+```
 ## Buld deb package
 You can also build a deb package from the source code yourself  
 Require
