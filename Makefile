@@ -39,7 +39,7 @@ build-x64:
 	gzip -cf out/gitconf > out/gitconf-x64.gz
 
 build-arm7:
-	ustup target add armv7-unknown-linux-musleabi
+	rustup target add armv7-unknown-linux-musleabi
 	$(BUILD_COMMNAD) --target=armv7-unknown-linux-musleabi
 	mkdir -p ./out
 	cp target/armv7-unknown-linux-musleabi/release/gitconf out/gitconf
