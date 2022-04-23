@@ -1,5 +1,5 @@
 # Gitconf
-![GitHub](https://img.shields.io/github/license/DomesticMoth/gitconf)
+![GitHub](https://img.shields.io/github/license/DomesticMoth/gitconf)  
 Overlay utility for more convenient and flexible configuration of git
 
 # Description
