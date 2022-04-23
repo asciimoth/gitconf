@@ -42,7 +42,7 @@ build-arm7:
 	rustup target add armv7-unknown-linux-gnueabihf
 	$(BUILD_COMMNAD) --target=armv7-unknown-linux-gnueabihf
 	mkdir -p ./out
-	cp target/armv7-unknown-linux-musleabi/release/gitconf out/gitconf
+	cp target/armv7-unknown-linux-gnueabihf/release/gitconf out/gitconf
 	gzip -cf out/gitconf > out/gitconf-arm7.gz
 
 build: build-man build-native
