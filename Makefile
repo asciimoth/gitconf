@@ -1,5 +1,5 @@
 PKG_NAME = $(shell basename -s .git $$(git remote get-url origin))
-PKG_VERSION = $(shell echo "$$(cargo pkgid | cut -d# -f2-)-$$(git rev-list --all --count)")
+PKG_VERSION = $(shell echo "$$(cargo pkgid | cut -d\# -f2-)-$$(git rev-list --all --count)")
 BRANCH = $(shell echo "-$$(git rev-parse --abbrev-ref HEAD)")
 OFFLINE = " "
 
@@ -48,6 +48,7 @@ build-arm7:
 build: build-man build-native
 
 create-deb-template: build-man
+	rm -rf out/deb/DEBIAN
 	mkdir -p ./out/deb/DEBIAN
 	mkdir -p ./out/deb/usr/bin/
 	mkdir -p ./out/deb/usr/share/man/man1/
@@ -61,12 +62,14 @@ create-deb-template: build-man
 	cp contrib/config/DEFAULT out/deb/etc/.gitconf/current/DEFAULT
 
 build-deb-x64: build-x64 create-deb-template
+	rm -rf out/$(PKG_NAME)-deb-x64
 	cp -r out/deb out/$(PKG_NAME)-deb-x64
 	echo "Architecture: amd64" >> out/$(PKG_NAME)-deb-x64/DEBIAN/control
 	cp out/gitconf out/$(PKG_NAME)-deb-x64/usr/bin/gitconf
 	dpkg-deb --build out/$(PKG_NAME)-deb-x64
 
 build-deb-arm7: build-arm7 create-deb-template
+	rm -rf out/$(PKG_NAME)-deb-arm7
 	cp -r out/deb out/$(PKG_NAME)-deb-arm7
 	echo "Architecture: armhf" >> out/$(PKG_NAME)-deb-arm7/DEBIAN/control
 	cp out/gitconf out/$(PKG_NAME)-deb-arm7/usr/bin/gitconf
