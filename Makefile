@@ -1,7 +1,6 @@
 PKG_NAME = $(shell basename -s .git $$(git remote get-url origin))
 PKG_VERSION = $(shell echo "$$(cargo pkgid | cut -d\# -f2-)-$$(git rev-list --all --count)")
 BRANCH = $(shell echo "-$$(git rev-parse --abbrev-ref HEAD)")
-OFFLINE = " "
 
 ifeq "$(BRANCH)" "-main"
 BRANCH = ""
@@ -11,12 +10,8 @@ ifeq "$(BRANCH)" "-master"
 BRANCH = ""
 endif
 
-ifeq "$(OFFLINE)" "TRUE"
-override OFFLINE = "--offline"
-endif
-
 PKG_NAME := "$(PKG_NAME)$(BRANCH)"
-BUILD_COMMNAD = $(shell echo "cargo build --release --locked $(OFFLINE)")
+BUILD_COMMNAD = $(shell echo "cargo build --release --locked --offline")
 
 clear:
 	rm -rf ./out
