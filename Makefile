@@ -16,7 +16,7 @@ override OFFLINE = "--offline"
 endif
 
 PKG_NAME := "$(PKG_NAME)$(BRANCH)"
-BUILD_COMMNAD = $(shell echo "cargo build --release $(OFFLINE)")
+BUILD_COMMNAD = $(shell echo "cargo build --release --locked $(OFFLINE)")
 
 clear:
 	rm -rf ./out
